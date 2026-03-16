@@ -74,6 +74,7 @@ All example apps run in App Sandbox. Use `GHOSTTY_SURFACE_IO_BACKEND_HOST_MANAGE
 4. **Text positioning** → `TerminalTextPosition` / `TerminalTextRange` (UITextPosition/UITextRange subclasses) provide minimal cursor geometry. `caretRect`/`firstRect` use `surface.imePoint()` for IME candidate window placement.
 
 Files in `Platform/UIKit/`:
+
 - `UITerminalView.swift` — main view, `canBecomeFirstResponder`, coordinator setup
 - `UITerminalView+UITextInput.swift` — full UITextInput conformance (UIKeyInput, marked text, positions, geometry)
 - `UITerminalView+Keyboard.swift` — hardware key handling via UIPress, modifier translation
@@ -87,6 +88,7 @@ The macOS equivalent uses `NSTextInputClient` in `AppTerminalView+NSTextInputCli
 ### Manifest Sync
 
 When changing SwiftPM products, targets, or test dependencies, update all three together:
+
 - `Package.swift` — production manifest (remote XCFramework URL + checksum)
 - `Package.local.swift` — local development (path-based binary target)
 - `Package.swift.template` — CI template with `__DOWNLOAD_URL__` / `__CHECKSUM__` placeholders

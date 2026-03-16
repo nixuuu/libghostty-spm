@@ -16,6 +16,7 @@ Swift Package wrapping [Ghostty](https://ghostty.org)'s terminal emulator librar
 | ----------------- | ------------------------------------------------------------------------------- |
 | `GhosttyKit`      | Re-exports the libghostty C API (`ghostty.h`)                                   |
 | `GhosttyTerminal` | Swift wrapper — native views, SwiftUI integration, input handling, display link |
+| `ShellCraftKit`   | Sandboxed shell emulation framework (depends on GhosttyTerminal)                |
 
 ## Installation
 
@@ -68,7 +69,7 @@ struct ContentView: View {
             .navigationTitle(context.title)
             .onAppear {
                 context.configuration = TerminalSurfaceOptions(
-                    backend: .hostManaged(session)
+                    backend: .inMemory(session)
                 )
             }
     }
@@ -96,7 +97,7 @@ let terminalView = TerminalView(frame: .zero)
 terminalView.delegate = self
 terminalView.controller = TerminalController(configFilePath: path)
 terminalView.configuration = TerminalSurfaceOptions(
-    backend: .hostManaged(session)
+    backend: .inMemory(session)
 )
 ```
 
@@ -109,7 +110,7 @@ let terminalView = TerminalView(frame: bounds)
 terminalView.delegate = self
 terminalView.controller = TerminalController(configFilePath: path)
 terminalView.configuration = TerminalSurfaceOptions(
-    backend: .hostManaged(session)
+    backend: .inMemory(session)
 )
 ```
 
@@ -138,18 +139,16 @@ session.finish(exitCode: 0, runtimeMilliseconds: 0)
 
 ### TerminalSurfaceViewDelegate
 
-Implement the delegate for event callbacks (UIKit/AppKit usage):
+The delegate is split into focused protocols, all inheriting from `TerminalSurfaceViewDelegate`. Conform to only the ones you need:
 
 ```swift
-func terminalDidChangeTitle(_ title: String)
-func terminalDidResize(_ size: TerminalGridMetrics)
-func terminalDidResize(columns: Int, rows: Int)
-func terminalDidChangeFocus(_ focused: Bool)
-func terminalDidRingBell()
-func terminalDidClose(processAlive: Bool)
+protocol TerminalSurfaceTitleDelegate      { func terminalDidChangeTitle(_ title: String) }
+protocol TerminalSurfaceGridResizeDelegate { func terminalDidResize(_ size: TerminalGridMetrics) }
+protocol TerminalSurfaceResizeDelegate     { func terminalDidResize(columns: Int, rows: Int) }
+protocol TerminalSurfaceFocusDelegate      { func terminalDidChangeFocus(_ focused: Bool) }
+protocol TerminalSurfaceBellDelegate       { func terminalDidRingBell() }
+protocol TerminalSurfaceCloseDelegate      { func terminalDidClose(processAlive: Bool) }
 ```
-
-All methods have default empty implementations.
 
 ## Architecture
 
@@ -168,6 +167,29 @@ GhosttyTerminal (Swift)
     TerminalKeyEventHandler    — Keyboard event translation (AppKit)
     InMemoryTerminalSession — Sandbox-safe I/O backend
 ```
+
+## Trimmed Build
+
+The bundled `libghostty` is a trimmed build optimized for sandboxed, embedded use on Apple platforms. Several upstream Ghostty components that are unnecessary (or incompatible) in this context have been removed or stubbed out via build flags and patches.
+
+| Component                        | Upstream Ghostty | libghostty-spm   | Reason                                                                                                                                                |
+| -------------------------------- | ---------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Terminal emulation core          | Yes              | Yes              | Full VT parser, state machine, grid — retained                                                                                                        |
+| Metal renderer                   | Yes              | Yes              | GPU rendering via CAMetalLayer / IOSurface — retained                                                                                                 |
+| Font rasterization & shaping     | Yes              | Yes              | CoreText font backend — retained                                                                                                                      |
+| Configuration system             | Yes              | Yes              | All terminal config options — retained                                                                                                                |
+| Input handling (key, mouse, IME) | Yes              | Yes              | Full keyboard/mouse/touch/IME pipeline — retained                                                                                                     |
+| Text selection & clipboard       | Yes              | Yes              | Selection, copy/paste APIs — retained                                                                                                                 |
+| Custom shaders (GLSL)            | Yes              | **No**           | `glslang` and `spirv-cross` removed (`-Dcustom-shaders=false`). Shadertoy/post-processing shaders are a desktop feature unnecessary for embedded use. |
+| Terminal inspector (ImGui)       | Yes              | **No**           | `dcimgui` (Dear ImGui) removed (`-Dinspector=false`). Debug inspector UI replaced with no-op stubs.                                                   |
+| Sentry crash reporting           | Yes              | **No**           | Disabled (`-Dsentry=false`). Not needed for library consumers.                                                                                        |
+| Native app runtime               | Yes              | **No**           | Cocoa/GTK/Wayland app shell disabled (`-Dapp-runtime=none`). The host app provides its own runtime.                                                   |
+| Standalone executable            | Yes              | **No**           | No terminal `.app` or CLI binary emitted (`-Demit-exe=false`).                                                                                        |
+| Documentation generation         | Yes              | **No**           | Skipped (`-Demit-docs=false`).                                                                                                                        |
+| Frame data generator             | Build-time tool  | **Pre-compiled** | `framedata.compressed` shipped pre-built; framegen C tool dependency removed.                                                                         |
+| Host-managed I/O backend         | No               | **Added**        | New `GHOSTTY_SURFACE_IO_BACKEND_HOST_MANAGED` for non-PTY, sandbox-safe terminal I/O.                                                                 |
+| iOS Metal rendering fixes        | No               | **Added**        | IOSurface +1px tolerance, synchronous present, 64-byte row alignment for iOS.                                                                         |
+| iOS platform fixes               | No               | **Added**        | Deployment target lowered, private API removed (`CGSSetWindowBackgroundBlurRadius`), kqueue fix for simulator.                                        |
 
 ## Building from Source
 

@@ -43,10 +43,13 @@
         }
 
         public func attributedSubstring(
-            forProposedRange _: NSRange,
-            actualRange _: NSRangePointer?
+            forProposedRange range: NSRange,
+            actualRange: NSRangePointer?
         ) -> NSAttributedString? {
-            nil
+            inputHandler?.inputMethodHandler?.attributedSubstring(
+                forProposedRange: range,
+                actualRange: actualRange
+            )
         }
 
         public func validAttributesForMarkedText() -> [NSAttributedString.Key] {

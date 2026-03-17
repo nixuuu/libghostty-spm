@@ -35,4 +35,14 @@ struct TerminalMarkedTextStateTests {
         #expect(state.selectedRange == NSRange(location: 4, length: 0))
         #expect(state.documentLength == 4)
     }
+
+    @Test
+    func textInRangeReturnsSubstringAndEmptyCaretSlice() {
+        var state = TerminalMarkedTextState()
+        state.setMarkedText("中文abc", selectedRange: NSRange(location: 2, length: 0))
+
+        #expect(state.text(in: NSRange(location: 0, length: 2)) == "中文")
+        #expect(state.text(in: NSRange(location: 2, length: 0)) == "")
+        #expect(state.text(in: NSRange(location: 99, length: 1)) == nil)
+    }
 }

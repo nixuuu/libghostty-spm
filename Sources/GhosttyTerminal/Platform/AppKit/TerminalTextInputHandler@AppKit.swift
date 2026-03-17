@@ -98,6 +98,27 @@
             markedTextState.markedRange
         }
 
+        func attributedSubstring(
+            forProposedRange range: NSRange,
+            actualRange: NSRangePointer?
+        ) -> NSAttributedString? {
+            guard markedTextState.hasMarkedText else {
+                actualRange?.pointee = NSRange(location: NSNotFound, length: 0)
+                return nil
+            }
+
+            let length = markedTextState.documentLength
+            let location = min(max(range.location, 0), length)
+            let end = min(max(range.location + range.length, location), length)
+            let clampedRange = NSRange(location: location, length: end - location)
+            actualRange?.pointee = clampedRange
+
+            guard let text = markedTextState.text(in: clampedRange) else {
+                return nil
+            }
+            return NSAttributedString(string: text)
+        }
+
         func handleCommand(_ selector: Selector) {
             guard hasMarkedText else { return }
 

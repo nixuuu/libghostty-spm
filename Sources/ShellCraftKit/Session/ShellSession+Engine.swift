@@ -357,26 +357,14 @@ actor Engine {
             return
         }
 
-        guard let text = String(data: pendingText, encoding: .utf8) else {
+        let (text, leftover) = decodeUTF8Incrementally(pendingText)
+        pendingText = leftover
+
+        guard !text.isEmpty else {
             return
         }
 
-        let previousInput = currentInput
-        let previousCursorPosition = cursorPosition
-        let idx = currentInput.index(currentInput.startIndex, offsetBy: cursorPosition)
-        currentInput.insert(contentsOf: text, at: idx)
-        cursorPosition += text.count
-        pendingText.removeAll(keepingCapacity: true)
-
-        if applyIncrementalAppendIfPossible(
-            insertedText: text,
-            previousInput: previousInput,
-            previousCursorPosition: previousCursorPosition
-        ) {
-            return
-        }
-
-        redrawInputLine()
+        insertText(text)
     }
 
     private func submitCurrentInput() {
@@ -631,6 +619,47 @@ func canIncrementallyAppendInput(
     return insertedText.unicodeScalars.allSatisfy { scalar in
         scalar.value >= 0x20 && scalar.value != 0x7F
     }
+}
+
+/// Decode as many complete UTF-8 characters as possible from raw bytes.
+///
+/// Returns the decoded text and any trailing bytes that form an incomplete
+/// (but potentially valid) UTF-8 sequence. Invalid bytes are skipped
+/// immediately — only genuinely incomplete tails are retained as leftover.
+func decodeUTF8Incrementally(_ data: Data) -> (String, Data) {
+    var decoded = ""
+    var i = data.startIndex
+
+    while i < data.endIndex {
+        let byte = data[i]
+
+        let sequenceLength: Int
+        switch byte {
+        case 0x00 ... 0x7F: sequenceLength = 1
+        case 0xC2 ... 0xDF: sequenceLength = 2
+        case 0xE0 ... 0xEF: sequenceLength = 3
+        case 0xF0 ... 0xF4: sequenceLength = 4
+        default:
+            i += 1
+            continue
+        }
+
+        let remaining = data.endIndex - i
+        if remaining < sequenceLength {
+            break
+        }
+
+        let slice = data[i ..< i + sequenceLength]
+        if let char = String(data: Data(slice), encoding: .utf8) {
+            decoded += char
+            i += sequenceLength
+        } else {
+            i += 1
+        }
+    }
+
+    let leftover = i < data.endIndex ? Data(data[i...]) : Data()
+    return (decoded, leftover)
 }
 
 private func shellDebugLog(

@@ -1,3 +1,4 @@
+import Foundation
 import GhosttyTerminal
 @testable import ShellCraftKit
 import Testing
@@ -177,5 +178,116 @@ struct ShellCraftKitTests {
         } else {
             Issue.record("expected fallback command result to produce output")
         }
+    }
+
+    // MARK: - decodeUTF8Incrementally
+
+    @Test
+    func utf8IncrementalDecodesCompleteASCII() {
+        let (text, leftover) = decodeUTF8Incrementally(Data("hello".utf8))
+        #expect(text == "hello")
+        #expect(leftover.isEmpty)
+    }
+
+    @Test
+    func utf8IncrementalDecodesCompleteChinese() {
+        let (text, leftover) = decodeUTF8Incrementally(Data("你好".utf8))
+        #expect(text == "你好")
+        #expect(leftover.isEmpty)
+    }
+
+    @Test
+    func utf8IncrementalRetainsIncompleteThreeByteSequence() {
+        // "你" is E4 BD A0 — send only first 2 bytes
+        let partial = Data([0xE4, 0xBD])
+        let (text1, leftover1) = decodeUTF8Incrementally(partial)
+        #expect(text1 == "")
+        #expect(leftover1 == partial)
+
+        // Now complete the sequence
+        let full = leftover1 + Data([0xA0])
+        let (text2, leftover2) = decodeUTF8Incrementally(full)
+        #expect(text2 == "你")
+        #expect(leftover2.isEmpty)
+    }
+
+    @Test
+    func utf8IncrementalRetainsIncompleteFourByteSequence() {
+        // 😀 is F0 9F 98 80 — send only first 3 bytes
+        let partial = Data([0xF0, 0x9F, 0x98])
+        let (text1, leftover1) = decodeUTF8Incrementally(partial)
+        #expect(text1 == "")
+        #expect(leftover1 == partial)
+
+        let full = leftover1 + Data([0x80])
+        let (text2, leftover2) = decodeUTF8Incrementally(full)
+        #expect(text2 == "😀")
+        #expect(leftover2.isEmpty)
+    }
+
+    @Test
+    func utf8IncrementalSkipsIllegalLeadByteFF() {
+        let (text, leftover) = decodeUTF8Incrementally(Data([0xFF]))
+        #expect(text == "")
+        #expect(leftover.isEmpty)
+    }
+
+    @Test
+    func utf8IncrementalSkipsOverlongLeadC0C1() {
+        // 0xC0 and 0xC1 are overlong, should be skipped
+        let input = Data([0xC0, 0x41, 0xC1, 0x42])
+        let (text, leftover) = decodeUTF8Incrementally(input)
+        #expect(text == "AB")
+        #expect(leftover.isEmpty)
+    }
+
+    @Test
+    func utf8IncrementalSkipsLeadF5Plus() {
+        let input = Data([0xF5, 0x41, 0xF6, 0x42, 0xF7, 0x43])
+        let (text, leftover) = decodeUTF8Incrementally(input)
+        #expect(text == "ABC")
+        #expect(leftover.isEmpty)
+    }
+
+    @Test
+    func utf8IncrementalSkipsOnlyLeadByteOnInvalidCombination() {
+        // 0xE4 expects 2 continuation bytes, but next bytes are ASCII
+        let input = Data([0xE4, 0x41, 0x42])
+        let (text, leftover) = decodeUTF8Incrementally(input)
+        #expect(text == "AB")
+        #expect(leftover.isEmpty)
+    }
+
+    @Test
+    func utf8IncrementalPreservesValidTextAfterIllegalByte() {
+        let input = Data([0xFF, 0x68, 0x65, 0x6C, 0x6C, 0x6F])  // 0xFF + "hello"
+        let (text, leftover) = decodeUTF8Incrementally(input)
+        #expect(text == "hello")
+        #expect(leftover.isEmpty)
+    }
+
+    @Test
+    func utf8IncrementalHandlesEmptyData() {
+        let (text, leftover) = decodeUTF8Incrementally(Data())
+        #expect(text == "")
+        #expect(leftover.isEmpty)
+    }
+
+    @Test
+    func utf8IncrementalHandlesMixedValidAndIncomplete() {
+        // "ab" + incomplete 3-byte lead
+        let input = Data([0x61, 0x62, 0xE4, 0xBD])
+        let (text, leftover) = decodeUTF8Incrementally(input)
+        #expect(text == "ab")
+        #expect(leftover == Data([0xE4, 0xBD]))
+    }
+
+    @Test
+    func utf8IncrementalDecomposedUnicode() {
+        // e (0x65) + combining acute accent U+0301 (0xCC 0x81)
+        let input = Data([0x65, 0xCC, 0x81])
+        let (text, leftover) = decodeUTF8Incrementally(input)
+        #expect(text == "e\u{0301}")
+        #expect(leftover.isEmpty)
     }
 }

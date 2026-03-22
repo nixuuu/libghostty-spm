@@ -16,6 +16,7 @@ Swift Package wrapping [Ghostty](https://ghostty.org)'s terminal emulator librar
 | ----------------- | ------------------------------------------------------------------------------- |
 | `GhosttyKit`      | Re-exports the libghostty C API (`ghostty.h`)                                   |
 | `GhosttyTerminal` | Swift wrapper — native views, SwiftUI integration, input handling, display link |
+| `GhosttyTheme`    | 485 terminal color themes from [iTerm2-Color-Schemes](https://github.com/mbadolato/iTerm2-Color-Schemes) (MIT License) |
 | `ShellCraftKit`   | Sandboxed shell emulation framework (depends on GhosttyTerminal)                |
 
 ## Installation
@@ -165,7 +166,11 @@ GhosttyTerminal (Swift)
     TerminalSurfaceCoordinator — Shared logic, display link, metrics
     TerminalSurface            — Thin wrapper around ghostty_surface_t
     TerminalKeyEventHandler    — Keyboard event translation (AppKit)
-    InMemoryTerminalSession — Sandbox-safe I/O backend
+    InMemoryTerminalSession    — Sandbox-safe I/O backend
+
+GhosttyTheme (485 color themes)
+    GhosttyThemeDefinition     — Theme data model (name, colors, palette)
+    GhosttyThemeCatalog        — Static catalog, search, lookup by name
 ```
 
 ## Trimmed Build

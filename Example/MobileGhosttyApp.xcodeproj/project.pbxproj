@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		5007031B2F6515410016FBBB /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = 5007031A2F6515410016FBBB /* GhosttyTerminal */; };
 		503AA0B62F685D3C00D5C113 /* ShellCraftKit in Frameworks */ = {isa = PBXBuildFile; productRef = 503AA0B52F685D3C00D5C113 /* ShellCraftKit */; };
+		50ED30082F705AA200E2694B /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = 50ED30072F705AA200E2694B /* GhosttyTheme */; };
+		50ED300A2F705AA500E2694B /* GhosttyKit in Frameworks */ = {isa = PBXBuildFile; productRef = 50ED30092F705AA500E2694B /* GhosttyKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +30,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				50ED300A2F705AA500E2694B /* GhosttyKit in Frameworks */,
+				50ED30082F705AA200E2694B /* GhosttyTheme in Frameworks */,
 				5007031B2F6515410016FBBB /* GhosttyTerminal in Frameworks */,
 				503AA0B62F685D3C00D5C113 /* ShellCraftKit in Frameworks */,
 			);
@@ -82,6 +86,8 @@
 			packageProductDependencies = (
 				5007031A2F6515410016FBBB /* GhosttyTerminal */,
 				503AA0B52F685D3C00D5C113 /* ShellCraftKit */,
+				50ED30072F705AA200E2694B /* GhosttyTheme */,
+				50ED30092F705AA500E2694B /* GhosttyKit */,
 			);
 			productName = MobileGhosttyApp;
 			productReference = 500702F12F6515250016FBBB /* MobileGhosttyApp.app */;
@@ -393,6 +399,14 @@
 		503AA0B52F685D3C00D5C113 /* ShellCraftKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ShellCraftKit;
+		};
+		50ED30072F705AA200E2694B /* GhosttyTheme */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GhosttyTheme;
+		};
+		50ED30092F705AA500E2694B /* GhosttyKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = GhosttyKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

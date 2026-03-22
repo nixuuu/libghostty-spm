@@ -35,6 +35,13 @@
             let stickyModifiers = TerminalStickyModifierState()
         #endif
 
+        #if !targetEnvironment(macCatalyst)
+            public var inputAccessoryStyle: TerminalInputAccessoryStyle {
+                get { terminalInputAccessory.style }
+                set { terminalInputAccessory.style = newValue }
+            }
+        #endif
+
         public weak var delegate: (any TerminalSurfaceViewDelegate)? {
             get { core.delegate }
             set { core.delegate = newValue }

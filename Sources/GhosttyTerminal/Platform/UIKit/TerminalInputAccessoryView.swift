@@ -10,6 +10,10 @@
     final class TerminalInputAccessoryView: UIView {
         weak var terminalView: UITerminalView?
 
+        var style: TerminalInputAccessoryStyle = .default {
+            didSet { refreshContent() }
+        }
+
         private let barHeight: CGFloat = 52
         private let buttonSize: CGFloat = 36
 
@@ -118,18 +122,18 @@
             let altActivation = terminalView?.stickyModifiers.alt ?? .inactive
             let commandActivation = terminalView?.stickyModifiers.command ?? .inactive
 
-            escapeButton.applyRegularStyle()
-            tabButton.applyRegularStyle()
-            leftButton.applyRegularStyle()
-            upButton.applyRegularStyle()
-            downButton.applyRegularStyle()
-            rightButton.applyRegularStyle()
-            pasteButton.applyRegularStyle()
-            symbolButtons.forEach { $0.applyRegularStyle() }
+            escapeButton.applyRegularStyle(style)
+            tabButton.applyRegularStyle(style)
+            leftButton.applyRegularStyle(style)
+            upButton.applyRegularStyle(style)
+            downButton.applyRegularStyle(style)
+            rightButton.applyRegularStyle(style)
+            pasteButton.applyRegularStyle(style)
+            symbolButtons.forEach { $0.applyRegularStyle(style) }
 
-            ctrlButton.applyModifierStyle(ctrlActivation, isDisabled: hasMarkedText)
-            altButton.applyModifierStyle(altActivation, isDisabled: hasMarkedText)
-            commandButton.applyModifierStyle(commandActivation, isDisabled: hasMarkedText)
+            ctrlButton.applyModifierStyle(ctrlActivation, isDisabled: hasMarkedText, style: style)
+            altButton.applyModifierStyle(altActivation, isDisabled: hasMarkedText, style: style)
+            commandButton.applyModifierStyle(commandActivation, isDisabled: hasMarkedText, style: style)
         }
 
         private func setupViews() {
@@ -301,9 +305,9 @@
 
         private var isFloatingBarLayout: Bool {
             if #available(iOS 26, *) {
-                return true
+                true
             } else {
-                return false
+                false
             }
         }
 
@@ -367,11 +371,11 @@
             fatalError("init(coder:) has not been implemented")
         }
 
-        func applyRegularStyle() {
+        func applyRegularStyle(_ style: TerminalInputAccessoryStyle) {
             isEnabled = true
             alpha = 1
-            tintColor = .label
-            backgroundColor = UIColor.systemGray5.withAlphaComponent(0.92)
+            tintColor = style.regularForeground
+            backgroundColor = style.regularBackground
             lockIndicator.isHidden = true
             lockIndicator.backgroundColor = tintColor
             configuration?.baseForegroundColor = tintColor
@@ -379,16 +383,15 @@
 
         func applyModifierStyle(
             _ activation: TerminalStickyModifierState.Activation,
-            isDisabled: Bool
+            isDisabled: Bool,
+            style: TerminalInputAccessoryStyle
         ) {
             isEnabled = !isDisabled
             alpha = isDisabled && activation == .inactive ? 0.45 : 1
 
             let isActive = activation != .inactive
-            tintColor = isActive ? .systemBlue : .label
-            backgroundColor = isActive
-                ? UIColor.systemBlue.withAlphaComponent(0.18)
-                : UIColor.systemGray5.withAlphaComponent(0.92)
+            tintColor = isActive ? style.activeForeground : style.regularForeground
+            backgroundColor = isActive ? style.activeBackground : style.regularBackground
             lockIndicator.isHidden = activation != .locked
             lockIndicator.backgroundColor = tintColor
             configuration?.baseForegroundColor = tintColor

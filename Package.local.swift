@@ -12,6 +12,7 @@ let package = Package(
         .library(name: "GhosttyKit", targets: ["GhosttyKit"]),
         .library(name: "GhosttyTerminal", targets: ["GhosttyTerminal"]),
         .library(name: "ShellCraftKit", targets: ["ShellCraftKit"]),
+        .library(name: "GhosttyTheme", targets: ["GhosttyTheme"]),
     ],
     dependencies: [
         .package(url: "https://github.com/Lakr233/MSDisplayLink.git", from: "2.1.0"),
@@ -36,13 +37,19 @@ let package = Package(
             dependencies: ["GhosttyTerminal"],
             path: "Sources/ShellCraftKit"
         ),
+        .target(
+            name: "GhosttyTheme",
+            dependencies: ["GhosttyTerminal"],
+            path: "Sources/GhosttyTheme",
+            exclude: ["LICENSE"]
+        ),
         .binaryTarget(
             name: "libghostty",
             path: "BinaryTarget/GhosttyKit.xcframework"
         ),
         .testTarget(
             name: "GhosttyKitTest",
-            dependencies: ["GhosttyKit", "GhosttyTerminal", "ShellCraftKit"]
+            dependencies: ["GhosttyKit", "GhosttyTerminal", "GhosttyTheme", "ShellCraftKit"]
         ),
     ]
 )

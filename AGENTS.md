@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SPM package wrapping Ghostty terminal emulator C library for Apple platforms (macOS 13+, iOS 16+, Mac Catalyst 16+). Three library products:
+SPM package wrapping Ghostty terminal emulator C library for Apple platforms (macOS 13+, iOS 16+, Mac Catalyst 16+). Four library products:
 
 - **GhosttyKit** — minimal re-export of the libghostty C API (`@_exported import libghostty`)
 - **GhosttyTerminal** — Swift wrapper: native views, SwiftUI integration, input handling, display link, host-managed I/O
+- **GhosttyTheme** — 485 terminal color themes from iTerm2-Color-Schemes (MIT License, depends on GhosttyTerminal)
 - **ShellCraftKit** — sandboxed shell emulation framework (depends on GhosttyTerminal)
 
 Binary target: pre-built `libghostty` XCFramework. Dependency: MSDisplayLink ^2.1.0.
@@ -30,6 +31,9 @@ swift test
 
 # Generate Package.swift for release
 ./Script/build-manifest.sh
+
+# Regenerate GhosttyTheme Swift files from iTerm2-Color-Schemes
+./Script/generate-themes.sh
 ```
 
 ## Architecture
@@ -49,12 +53,18 @@ GhosttyTerminal (Swift wrapper, ~40 files)
   ├─ Surface/          Metal rendering bridge, display link, surface lifecycle
   └─ View/             SwiftUI TerminalSurfaceView + platform representables
 
+GhosttyTheme (485 terminal color themes)
+  ├─ GhosttyThemeDefinition     — theme data model (name, colors, palette)
+  ├─ GhosttyThemeCatalog        — static catalog, search, lookup by name
+  ├─ +TerminalConfiguration     — bridge to TerminalConfiguration/TerminalTheme, isDark helper
+  └─ Themes/                    — auto-generated Swift files (A-Z) from iTerm2-Color-Schemes
+
 ShellCraftKit (~5 files)
   ├─ Definition/       ShellDefinition, SandboxShell, ShellCommand protocol
   └─ Session/          ShellSession + Bridge + Engine
 ```
 
-Key types: `TerminalViewState` (@Observable, SwiftUI entry point), `TerminalSurfaceView` (SwiftUI view), `TerminalView` (platform typealias: UITerminalView / AppTerminalView), `TerminalController`, `InMemoryTerminalSession`.
+Key types: `TerminalViewState` (@Observable, SwiftUI entry point), `TerminalSurfaceView` (SwiftUI view), `TerminalView` (platform typealias: UITerminalView / AppTerminalView), `TerminalController`, `InMemoryTerminalSession`, `GhosttyThemeDefinition`, `GhosttyThemeCatalog`.
 
 ### Platform Branching
 
@@ -70,7 +80,7 @@ All example apps run in App Sandbox. Use `GHOSTTY_SURFACE_IO_BACKEND_HOST_MANAGE
 
 1. **Hardware keys** → `pressesBegan`/`pressesEnded` in `+Keyboard.swift` → builds `ghostty_input_key_s` → `surface.sendKeyEvent()`. Sets `hardwareKeyHandled = true` to suppress the duplicate `insertText`/`deleteBackward` that UIKit would otherwise deliver.
 2. **Software keyboard** → UIKit calls `insertText(_:)` / `deleteBackward()` via UIKeyInput. Guarded by `hardwareKeyHandled` flag to avoid double-processing hardware key presses.
-3. **Input accessory bar** (iOS only, excludes Catalyst) → `TerminalInputAccessoryView` provides a toolbar above the software keyboard with Esc, Tab, arrow keys, modifier keys (Ctrl/Alt/Cmd), symbol keys, and Paste. Modifier keys support **sticky states**: tap to arm (consumed after next key), double-tap to lock (persists until toggled off). Sticky modifier state is tracked by `TerminalStickyModifierState`. Actions are dispatched via `UITerminalView+InputAccessory.swift`.
+3. **Input accessory bar** (iOS only, excludes Catalyst) → `TerminalInputAccessoryView` provides a toolbar above the software keyboard with Esc, Tab, arrow keys, modifier keys (Ctrl/Alt/Cmd), symbol keys, and Paste. Modifier keys support **sticky states**: tap to arm (consumed after next key), double-tap to lock (persists until toggled off). Sticky modifier state is tracked by `TerminalStickyModifierState`. Actions are dispatched via `UITerminalView+InputAccessory.swift`. Button colors are configurable via `TerminalInputAccessoryStyle` (regular/active background and foreground), exposed as `UITerminalView.inputAccessoryStyle`.
 4. **IME / marked text** → `setMarkedText` / `unmarkText` delegate to `TerminalTextInputHandler`, which calls `surface.preedit()` for inline composition preview. Committed text goes through `insertText`. Sticky modifiers are respected during IME composition.
 5. **Text positioning** → `TerminalTextPosition` / `TerminalTextRange` (UITextPosition/UITextRange subclasses) provide minimal cursor geometry. `caretRect`/`firstRect` use `surface.imePoint()` for IME candidate window placement.
 
@@ -83,6 +93,7 @@ Files in `Platform/UIKit/`:
 - `UITerminalView+Interaction.swift` — touch scrolling, momentum scroll via CADisplayLink, Catalyst pointer/mouse
 - `UITerminalView+Lifecycle.swift` — display scale, sublayer frames, focus, color scheme
 - `TerminalInputAccessoryView.swift` — input accessory bar UIView (blur background, scrollable button layout)
+- `TerminalInputAccessoryStyle.swift` — configurable button colors for the accessory bar (regular/active background and foreground)
 - `TerminalInputBarKey.swift` — enum defining accessory bar key types (esc, tab, arrows, symbols, paste)
 - `TerminalStickyModifierState.swift` — modifier key state machine (inactive/armed/locked, double-tap locking)
 - `TerminalTextInputHandler@UIKit.swift` — IME state machine (marked text, preedit bridge, sticky modifier support)

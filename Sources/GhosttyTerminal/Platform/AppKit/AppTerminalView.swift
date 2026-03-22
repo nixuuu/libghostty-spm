@@ -92,5 +92,28 @@
         deinit {
             NotificationCenter.default.removeObserver(self)
         }
+
+        // MARK: - Raw Key Input
+
+        /// Send a raw key event directly to the terminal surface,
+        /// bypassing interpretKeyEvents. Use for special keys (Enter,
+        /// Backspace, Tab, Escape) that AppKit routes through doCommand
+        /// instead of insertText.
+        @discardableResult
+        public func sendRawKeyEvent(
+            keycode: ghostty_input_key_e,
+            action: ghostty_input_action_e,
+            mods: ghostty_input_mods_e = ghostty_input_mods_e(rawValue: 0)
+        ) -> Bool {
+            guard let surface else { return false }
+            var input = ghostty_input_key_s()
+            input.action = action
+            input.keycode = keycode.rawValue
+            input.mods = mods
+            input.consumed_mods = ghostty_input_mods_e(rawValue: 0)
+            input.composing = false
+            input.text = nil
+            return surface.sendKeyEvent(input)
+        }
     }
 #endif

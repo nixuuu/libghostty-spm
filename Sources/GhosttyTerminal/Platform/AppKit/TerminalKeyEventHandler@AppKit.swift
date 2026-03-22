@@ -34,30 +34,6 @@
                 return
             }
 
-            // Special keys (Enter, Backspace, Tab, Escape) that AppKit
-            // routes through doCommand(by:) instead of insertText.
-            // interpretKeyEvents drops them for the .exec backend because
-            // doCommand produces no text and filteredCharacters returns nil
-            // for their control characters. Handle directly.
-            let hasMarked = inputMethodHandler?.hasMarkedText == true
-            let specialText = Self.specialKeyText(
-                for: event.keyCode,
-                modifiers: event.modifierFlags
-            )
-            NSLog("[ghostty-handler] keyCode=%d hasMarked=%d specialText=%@ mods=0x%lx",
-                  event.keyCode, hasMarked ? 1 : 0,
-                  specialText ?? "nil",
-                  event.modifierFlags.rawValue)
-            if !hasMarked, let text = specialText {
-                var input = event.buildKeyInput(action: action)
-                text.withCString { ptr in
-                    input.text = ptr
-                    let result = surface.sendKeyEvent(input)
-                    NSLog("[ghostty-handler] sent key=%d text=%@ result=%d", input.keycode, text, result ? 1 : 0)
-                }
-                return
-            }
-
             inputMethodHandler?.startCollectingText()
             view.interpretKeyEvents([event])
 
@@ -155,25 +131,6 @@
 
             session.sendInput(sequence)
             return true
-        }
-
-        private static func specialKeyText(
-            for keyCode: UInt16,
-            modifiers: NSEvent.ModifierFlags
-        ) -> String? {
-            // Only bare keys and Shift variants. Ctrl/Option combos
-            // go through normal interpretKeyEvents for keybind matching.
-            guard modifiers.intersection([.control, .option]).isEmpty else {
-                return nil
-            }
-            switch keyCode {
-            case 0x24: return "\r"       // Enter
-            case 0x4C: return "\r"       // Numpad Enter
-            case 0x30: return "\t"       // Tab
-            case 0x33: return "\u{7F}"   // Backspace (DEL)
-            case 0x35: return "\u{1B}"   // Escape
-            default:   return nil
-            }
         }
 
         private func shouldBypassGhosttyForDirectInput(_ event: NSEvent) -> Bool {

@@ -120,16 +120,22 @@
         }
 
         func handleCommand(_ selector: Selector) {
-            guard hasMarkedText else { return }
-
-            switch selector {
-            case #selector(NSResponder.deleteBackward(_:)):
-                deleteBackward()
-            case #selector(NSResponder.cancelOperation(_:)):
-                unmarkText()
-            default:
-                break
+            if hasMarkedText {
+                switch selector {
+                case #selector(NSResponder.deleteBackward(_:)):
+                    deleteBackward()
+                    return
+                case #selector(NSResponder.cancelOperation(_:)):
+                    unmarkText()
+                    return
+                default:
+                    break
+                }
             }
+
+            // For non-IME key commands (Enter, Tab, Backspace without
+            // marked text), do NOT consume the event so the key handler
+            // falls through to sendKeyEvent / ghostty_surface_key().
         }
 
         private func deleteBackward() {

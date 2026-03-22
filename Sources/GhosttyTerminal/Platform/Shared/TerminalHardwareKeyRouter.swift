@@ -74,8 +74,16 @@ enum TerminalHardwareKeyRouter {
 
     private static func directControlInputForAppKit(keyCode: UInt16) -> Data? {
         switch keyCode {
+        case 0x24:
+            Data([0x0D])
+        case 0x4C:
+            Data([0x0D])
+        case 0x30:
+            Data([0x09])
         case 0x33:
             Data([0x7F])
+        case 0x35:
+            Data([0x1B])
         case 0x75:
             Data("\u{1B}[3~".utf8)
         case 0x73:

@@ -39,16 +39,21 @@
             // interpretKeyEvents drops them for the .exec backend because
             // doCommand produces no text and filteredCharacters returns nil
             // for their control characters. Handle directly.
-            if inputMethodHandler?.hasMarkedText != true,
-               let text = Self.specialKeyText(
-                   for: event.keyCode,
-                   modifiers: event.modifierFlags
-               )
-            {
+            let hasMarked = inputMethodHandler?.hasMarkedText == true
+            let specialText = Self.specialKeyText(
+                for: event.keyCode,
+                modifiers: event.modifierFlags
+            )
+            NSLog("[ghostty-handler] keyCode=%d hasMarked=%d specialText=%@ mods=0x%lx",
+                  event.keyCode, hasMarked ? 1 : 0,
+                  specialText ?? "nil",
+                  event.modifierFlags.rawValue)
+            if !hasMarked, let text = specialText {
                 var input = event.buildKeyInput(action: action)
                 text.withCString { ptr in
                     input.text = ptr
-                    surface.sendKeyEvent(input)
+                    let result = surface.sendKeyEvent(input)
+                    NSLog("[ghostty-handler] sent key=%d text=%@ result=%d", input.keycode, text, result ? 1 : 0)
                 }
                 return
             }

@@ -105,10 +105,7 @@
             action: ghostty_input_action_e,
             mods: ghostty_input_mods_e = ghostty_input_mods_e(rawValue: 0)
         ) -> Bool {
-            guard let surface else {
-                NSLog("[ghostty] sendRawKeyEvent: surface is nil")
-                return false
-            }
+            guard let surface else { return false }
             var input = ghostty_input_key_s()
             input.action = action
             input.keycode = keycode.rawValue
@@ -116,9 +113,7 @@
             input.consumed_mods = ghostty_input_mods_e(rawValue: 0)
             input.composing = false
             input.text = nil
-            let result = surface.sendKeyEvent(input)
-            NSLog("[ghostty] sendRawKeyEvent: keycode=%d result=%d", keycode.rawValue, result ? 1 : 0)
-            return result
+            return surface.sendKeyEvent(input)
         }
     }
 #endif

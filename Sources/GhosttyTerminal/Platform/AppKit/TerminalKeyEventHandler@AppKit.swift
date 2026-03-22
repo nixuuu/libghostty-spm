@@ -34,6 +34,25 @@
                 return
             }
 
+            // Special keys (Enter, Backspace, Tab, Escape) that AppKit
+            // routes through doCommand(by:) instead of insertText.
+            // interpretKeyEvents drops them for the .exec backend because
+            // doCommand produces no text and filteredCharacters returns nil
+            // for their control characters. Handle directly.
+            if inputMethodHandler?.hasMarkedText != true,
+               let text = Self.specialKeyText(
+                   for: event.keyCode,
+                   modifiers: event.modifierFlags
+               )
+            {
+                var input = event.buildKeyInput(action: action)
+                text.withCString { ptr in
+                    input.text = ptr
+                    surface.sendKeyEvent(input)
+                }
+                return
+            }
+
             inputMethodHandler?.startCollectingText()
             view.interpretKeyEvents([event])
 
@@ -131,6 +150,25 @@
 
             session.sendInput(sequence)
             return true
+        }
+
+        private static func specialKeyText(
+            for keyCode: UInt16,
+            modifiers: NSEvent.ModifierFlags
+        ) -> String? {
+            // Only bare keys and Shift variants. Ctrl/Option combos
+            // go through normal interpretKeyEvents for keybind matching.
+            guard modifiers.intersection([.control, .option]).isEmpty else {
+                return nil
+            }
+            switch keyCode {
+            case 0x24: return "\r"       // Enter
+            case 0x4C: return "\r"       // Numpad Enter
+            case 0x30: return "\t"       // Tab
+            case 0x33: return "\u{7F}"   // Backspace (DEL)
+            case 0x35: return "\u{1B}"   // Escape
+            default:   return nil
+            }
         }
 
         private func shouldBypassGhosttyForDirectInput(_ event: NSEvent) -> Bool {
